@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Japanese Reading Tracker
 // @description  Keeps track of characters read in popular japanese websites like syosetu.com, etc.
-// @version      1.2
+// @version      1.3
 // @author       nenlitiochristian
 // @match        https://syosetu.org/*
 // @match        https://kakuyomu.jp/*
@@ -140,6 +140,7 @@
             chapterList.style.overflowY = "auto";
             chapterList.style.padding = '0';
             chapterList.style.marginBottom = "auto";
+            chapterList.style.display = "block";
 
             const listHeader = document.createElement('thead');
             listHeader.innerHTML = `<tr>
