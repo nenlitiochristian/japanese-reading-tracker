@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name         Japanese Reading Tracker
 // @description  Keeps track of characters read in popular japanese websites like syosetu.com, etc.
-// @version      1.0
+// @version      1.1
 // @author       nenlitiochristian
 // @match        https://syosetu.org/*
+// @match        https://kakuyomu.jp/*
 // ==/UserScript==
 
 (function () {
@@ -81,7 +82,7 @@
             // Create a floating button
             const button = document.createElement('button');
             button.id = 'tracker-button';
-            button.textContent = `Open Tracker`;
+            button.textContent = `読書記録を開く`;
             button.style.position = 'fixed';
             button.style.bottom = '20px';
             button.style.right = '20px';
@@ -133,29 +134,29 @@
             const chapterList = document.createElement('table');
             chapterList.style.paddingTop = "4px";
             chapterList.style.listStyle = 'none';
-            chapterList.style.flexGrow = "1";
             chapterList.style.overflowY = "auto";
             chapterList.style.padding = '0';
+            chapterList.style.marginBottom = "auto";
 
             const listHeader = document.createElement('thead');
             listHeader.innerHTML = `<tr>
-                <th>#</td> <td>タイトル</td> <td>文字数</td> <td style="width:64px;">操作</td>
+                <th>#</td> <td>タイトル</td> <td>文字数</td> <td style="width:64px;"></td>
             </tr>`
             chapterList.append(listHeader);
 
             const listBody = document.createElement('tbody');
             chapterList.append(listBody);
 
+            // kakuyomu doesn't start at 1, we make it so that it does
+            let index = 1;
             // Populate the list with tracked chapters
             Object.entries(novelData.readChapters).sort((a, b) => parseInt(a) - parseInt(b)).forEach(([key, chapter]) => {
                 const listItem = document.createElement('tr');
-                listItem.style.marginBottom = '10px';
                 listItem.innerHTML = `
-            <td>${key}</td> <td>${chapter.title}</td> <td>${chapter.characters}</td>
+            <td>${index}</td> <td>${chapter.title}</td> <td>${chapter.characters}</td>
             <td>
-                <button data-chapter="${key}" style="background-color: #ff6347; color: #fff; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">削除</button>
-            </td>
-        `;
+                <button data-chapter="${key}" style="background-color: #ff6347; color: #fff; border: none; padding: 5px; cursor: pointer; border-radius: 3px;">削除</button>
+            </td>`;
 
                 // Add event listener for the remove button
                 listItem.querySelector('button').addEventListener('click', () => {
@@ -166,13 +167,14 @@
                 });
 
                 chapterList.appendChild(listItem);
+                index++;
             });
 
             popup.appendChild(chapterList);
 
             // Add close button
             const closeButton = document.createElement('button');
-            closeButton.textContent = 'Close';
+            closeButton.textContent = '閉じる';
             closeButton.style.backgroundColor = '#444';
             closeButton.style.color = '#fff';
             closeButton.style.border = 'none';
@@ -254,11 +256,49 @@
         }
     }
 
-    class SyosetuCom extends SiteStrategy {
-
-    }
 
     class KakuyomuJp extends SiteStrategy {
+        // https://kakuyomu.jp/works/{novel}/episodes/{chapter}
+        // split by /
+        // 1 -> works
+        // 2 -> {novel}
+        // 4 -> {chapter}
+        isInNovelPage() {
+            return window.location.pathname.split("/")[1] === "works";
+        }
+
+        getNovelId() {
+            return window.location.pathname.split("/")[2];
+        }
+
+        handleOldNovel(id) {
+            // get the current chapter from the URL (if any)
+            let chapterId = window.location.pathname.split("/")[4];
+            const currentNovelData = JSON.parse(localStorage.getItem(id));
+
+            // if we are not in a chapter page, just return the existing novel data
+            if (!chapterId) {
+                return currentNovelData;
+            }
+
+            // Get the chapter content and calculate the character count
+            const chapterContent = document.querySelector(".widget-episodeBody");
+            const chapterText = [...chapterContent.childNodes].map((node) => node.textContent).join("");
+
+            const newChapter = {
+                title: document.querySelector(".widget-episodeTitle").textContent,
+                characters: countJapaneseCharacters(chapterText),
+            }
+
+            // Update the novel data with the new chapter and store it in localStorage
+            currentNovelData.readChapters = { ...currentNovelData.readChapters, [chapterId]: newChapter };
+            localStorage.setItem(id, JSON.stringify(currentNovelData));
+
+            return currentNovelData;
+        }
+    }
+
+    class SyosetuCom extends SiteStrategy {
 
     }
 
