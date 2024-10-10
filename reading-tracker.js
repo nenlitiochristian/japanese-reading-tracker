@@ -5,6 +5,7 @@
 // @author       nenlitiochristian
 // @match        https://syosetu.org/*
 // @match        https://kakuyomu.jp/*
+// @match        https://ncode.syosetu.com/*
 // ==/UserScript==
 
 (function () {
@@ -299,7 +300,48 @@
     }
 
     class SyosetuCom extends SiteStrategy {
+        // https://ncode.syosetu.com/{novel}/{chapter}/
+        // split by /
+        // 1 -> {novel}
+        // 2 -> {chapter}
+        isInNovelPage() {
+            return window.location.hostname === "ncode.syosetu.com";
+        }
 
+        getNovelId() {
+            return window.location.pathname.split("/")[1];
+        }
+
+        handleOldNovel(id) {
+            // get the current chapter from the URL (if any)
+            let chapterId = window.location.pathname.split("/")[2];
+            const currentNovelData = JSON.parse(localStorage.getItem(id));
+
+            // if we are not in a chapter page, just return the existing novel data
+            if (!chapterId) {
+                return currentNovelData;
+            }
+
+            // Get the chapter content and calculate the character count
+            const chapterContent = document.querySelector(".p-novel__text");
+            const chapterText = [...chapterContent.childNodes].map((node) => node.textContent).join("");
+
+            // in mobile mode, the title uses the class p-novel__subtitle-episode instead
+            let title = document.querySelector(".p-novel__title")?.textContent ?? null
+            if (!title) {
+                title = document.querySelector(".p-novel__subtitle-episode").textContent
+            }
+            const newChapter = {
+                title,
+                characters: countJapaneseCharacters(chapterText),
+            }
+
+            // Update the novel data with the new chapter and store it in localStorage
+            currentNovelData.readChapters = { ...currentNovelData.readChapters, [chapterId]: newChapter };
+            localStorage.setItem(id, JSON.stringify(currentNovelData));
+
+            return currentNovelData;
+        }
     }
 
     /**
@@ -310,7 +352,7 @@
         if (hostname === "syosetu.org") {
             return new SyosetuOrg();
         }
-        else if (hostname === "syosetu.com") {
+        else if (hostname === "ncode.syosetu.com") {
             return new SyosetuCom();
         }
         else if (hostname === "kakuyomu.jp") {
