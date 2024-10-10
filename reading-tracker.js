@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Japanese Reading Tracker
 // @description  Keeps track of characters read in popular japanese websites like syosetu.com, etc.
-// @version      1.1
+// @version      1.2
 // @author       nenlitiochristian
 // @match        https://syosetu.org/*
 // @match        https://kakuyomu.jp/*
