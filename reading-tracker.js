@@ -8,13 +8,6 @@
 
 (function () {
     'use strict';
-    // visioned use case:
-    // open novel ->
-    // novel not in db -> pick read chapters (none if new) -> insert db
-    // novel in db ->  add chars as you go?
-
-    // only support syosetu.org for now, will add more later
-
     // credit to cademcniven for this
     function countJapaneseCharacters(japaneseText) {
         const regex = /[一-龠]+|[ぁ-ゔ]+|[ァ-ヴー]+|[ａ-ｚＡ-Ｚ０-９]+|[々〆〤ヶ]+/g
@@ -130,7 +123,7 @@
 
             // Add content to the popup
             const title = document.createElement('h2');
-            title.textContent = 'Tracked Chapters';
+            title.textContent = `合計文字数：${countTotalCharacters(novelData)}`;
             title.style.borderBottom = '1px solid #444';
             title.style.paddingBottom = '10px';
             overlayContainer.appendChild(popup);
