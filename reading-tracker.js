@@ -6,6 +6,8 @@
 // @match        https://syosetu.org/*
 // @match        https://kakuyomu.jp/*
 // @match        https://ncode.syosetu.com/*
+// @license      MIT
+// @namespace    JPtracker_v1.2_nc
 // ==/UserScript==
 
 (function () {
