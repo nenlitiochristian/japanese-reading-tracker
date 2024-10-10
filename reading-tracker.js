@@ -7,7 +7,7 @@
 // @match        https://kakuyomu.jp/*
 // @match        https://ncode.syosetu.com/*
 // @license      MIT
-// @namespace    JPtracker_v1.2_nc
+// @namespace    JP_reading_tracker_nc
 // ==/UserScript==
 
 (function () {
@@ -82,87 +82,61 @@
          * @param {Novel} novelData 
          */
         renderCounter(id, novelData) {
-            // Create a floating button
+            // inject styles 
+            const styles = `#tracker-button { position: fixed; bottom: 20px; right: 20px; background-color: #333; color: #fff; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; z-index: 1000; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.5); user-select: none; } 
+            .overlay-container { position: fixed; left: 0; top: 0; width: 100%; height: 100%; justify-content: center; align-items: center; display: none; z-index: 1001; font-size: 16px; background: rgba(0, 0, 0, 0.5); }
+            #tracker-popup { height: 90%; width: calc(200px + 40%); background-color: #222; color: #fff; padding: 20px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
+            #tracker-popup h2 { border-bottom: 1px solid #444; padding-bottom: 10px; } 
+            .table-list { padding-top: 4px; margin-bottom: auto; width: 100%; display: block; overflow-y: auto; } 
+            .table-list th, .table-list td { padding: 5px; } 
+            .delete-button { background-color: #ff6347; color: #fff; border: none; padding: 5px; cursor: pointer; border-radius: 3px; } 
+            .close-button { background-color: #444; color: #fff; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 20px; width: fit-content; } `;
+
+            const styleSheet = document.createElement("style");
+            styleSheet.innerText = styles;
+            document.head.appendChild(styleSheet);
+
+            // add button to display the popup
             const button = document.createElement('button');
             button.id = 'tracker-button';
-            button.textContent = `読書記録を開く`;
-            button.style.position = 'fixed';
-            button.style.bottom = '20px';
-            button.style.right = '20px';
-            button.style.backgroundColor = '#333';
-            button.style.color = '#fff';
-            button.style.border = 'none';
-            button.style.padding = '10px 20px';
-            button.style.borderRadius = '5px';
-            button.style.cursor = 'pointer';
-            button.style.zIndex = '1000';
-            button.style.boxShadow = '0px 0px 5px rgba(0,0,0,0.5)';
+            button.textContent = `🍞`;
 
             document.body.appendChild(button);
 
             const overlayContainer = document.createElement('div');
-            overlayContainer.style.position = "fixed";
-            overlayContainer.style.left = "0px";
-            overlayContainer.style.top = "0px";
-            overlayContainer.style.width = "100%";
-            overlayContainer.style.height = "100%";
-            overlayContainer.style.justifyContent = "center";
-            overlayContainer.style.display = "none";
-            overlayContainer.style.alignItems = "center";
-            overlayContainer.style.zIndex = "1001";
-            overlayContainer.style.fontSize = "16px";
-            overlayContainer.style.background = "rgba(0, 0, 0, 0.5)";
+            overlayContainer.classList.add('overlay-container');
 
             const popup = document.createElement('div');
             popup.id = 'tracker-popup';
-            popup.style.height = '90%';
-            popup.style.width = 'calc(200px + 40%)';
-            popup.style.backgroundColor = '#222';
-            popup.style.color = '#fff';
-            popup.style.padding = '20px';
-            popup.style.borderRadius = '10px';
-            popup.style.boxShadow = '0px 4px 10px rgba(0,0,0,0.5)';
-            popup.style.display = "flex";
-            popup.style.flexDirection = "column";
 
             // Add content to the popup
             const title = document.createElement('h2');
             title.textContent = `合計文字数：${countTotalCharacters(novelData)}`;
-            title.style.borderBottom = '1px solid #444';
-            title.style.paddingBottom = '10px';
-            overlayContainer.appendChild(popup);
             popup.appendChild(title);
 
             // List of tracked chapters
             const chapterList = document.createElement('table');
-            chapterList.style.paddingTop = "4px";
-            chapterList.style.listStyle = 'none';
-            chapterList.style.overflowY = "auto";
-            chapterList.style.padding = '0';
-            chapterList.style.marginBottom = "auto";
-            chapterList.style.display = "block";
+            chapterList.classList.add('table-list');
 
             const listHeader = document.createElement('thead');
             listHeader.innerHTML = `<tr>
-                <th>#</td> <td>タイトル</td> <td>文字数</td> <td style="width:64px;"></td>
-            </tr>`
+                <th>#</th> <th style="width:auto;">タイトル</th> <th>文字数</th> <th style="width:64px;"></th>
+            </tr>`;
+
             chapterList.append(listHeader);
 
             const listBody = document.createElement('tbody');
             chapterList.append(listBody);
 
-            // kakuyomu doesn't start at 1, we make it so that it does
             let index = 1;
-            // Populate the list with tracked chapters
             Object.entries(novelData.readChapters).sort((a, b) => parseInt(a) - parseInt(b)).forEach(([key, chapter]) => {
                 const listItem = document.createElement('tr');
                 listItem.innerHTML = `
-            <td>${index}</td> <td>${chapter.title}</td> <td>${chapter.characters}</td>
-            <td>
-                <button data-chapter="${key}" style="background-color: #ff6347; color: #fff; border: none; padding: 5px; cursor: pointer; border-radius: 3px;">削除</button>
-            </td>`;
+                <td>${index}</td> <td style="width:auto;">${chapter.title}</td> <td>${chapter.characters}</td>
+                <td>
+                    <button data-chapter="${key}" class="delete-button">削除</button>
+                </td>`;
 
-                // Add event listener for the remove button
                 listItem.querySelector('button').addEventListener('click', () => {
                     const { [key]: _, ...updatedChapters } = novelData.readChapters;
                     novelData.readChapters = updatedChapters;
@@ -170,7 +144,7 @@
                     window.location.reload(); // Reload to update UI
                 });
 
-                chapterList.appendChild(listItem);
+                listBody.appendChild(listItem);
                 index++;
             });
 
@@ -179,14 +153,7 @@
             // Add close button
             const closeButton = document.createElement('button');
             closeButton.textContent = '閉じる';
-            closeButton.style.backgroundColor = '#444';
-            closeButton.style.color = '#fff';
-            closeButton.style.border = 'none';
-            closeButton.style.padding = '10px 20px';
-            closeButton.style.borderRadius = '5px';
-            closeButton.style.cursor = 'pointer';
-            closeButton.style.marginTop = '20px';
-            closeButton.style.width = "fit-content";
+            closeButton.classList.add('close-button');
 
             closeButton.addEventListener('click', () => {
                 overlayContainer.style.display = 'none';
@@ -194,10 +161,9 @@
 
             popup.appendChild(closeButton);
 
-            // Add popup to the body
+            overlayContainer.appendChild(popup);
             document.body.appendChild(overlayContainer);
 
-            // Toggle popup visibility on button click
             button.addEventListener('click', () => {
                 overlayContainer.style.display = overlayContainer.style.display === 'none' ? 'flex' : 'none';
             });
