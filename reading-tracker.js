@@ -21,134 +21,288 @@
         return [...japaneseText.matchAll(regex)].join('').length
     }
 
-    function handleNewNovel(id) {
-        // assume nothing is already read for now, just init db
-        // the data type kept in db is as follows
+    /**
+     * @typedef {Object} Chapter
+     * @property {string} title - The title of the chapter.
+     * @property {number} characters - The number of characters read in the chapter.
+     */
 
-        // type Novel {
-        //     readChapters: Map<String, Chapter> (id, chapter)
-        // }
+    /**
+     * @typedef {Object} Novel
+     * @property {Object.<string, Chapter>} readChapters - A map where the key is the chapter ID and the value is a `Chapter` object.
+     */
 
-        // type Chapter {
-        //     title: string,
-        //     characters: number,
-        // }
-
-        localStorage.setItem(id, JSON.stringify({
-            readChapters: [],
-        }))
+    /**
+     * Makes a new empty novel
+     * @returns {Novel} 
+     */
+    function newNovel() {
+        return {
+            readChapters: {},
+        }
     }
 
-    // return the currentNovelData
-    function handleOldNovel(id) {
-        // https://syosetu.org/novel/{id}/{chapter}.html
-        const currentChapter = window.location.pathname.split("/")[3]
-        const currentNovelData = JSON.parse(localStorage.getItem(id))
-
-        // not in a chapter, do nothing
-        if (!currentChapter) {
-            return currentNovelData;
-        }
-
-        const chapterNumber = currentChapter.split(".")[0]
-
-        const chapterContent = document.querySelector("#honbun")
-        const chapterText = [...chapterContent.childNodes].map((node) => node.textContent).join("")
-
-        const newChapter = {
-            title: document.querySelectorAll('span[style="font-size:120%"]')[1].innerHTML ?? "Unknown",
-            characters: countJapaneseCharacters(chapterText),
-        }
-
-        currentNovelData.readChapters = { ...currentNovelData.readChapters, [chapterNumber]: newChapter }
-        localStorage.setItem(id, JSON.stringify(currentNovelData))
-        return currentNovelData;
+    /**
+     * @param {string} id - The unique identifier for the novel.
+     */
+    function initializeStorage(id) {
+        localStorage.setItem(id, JSON.stringify(newNovel()));
     }
 
+    /**
+     * @param {Novel} novel
+     * @returns {number}
+     */
     function countTotalCharacters(novel) {
         let counter = 0;
+        // Sum up the character count from all chapters
         Object.entries(novel.readChapters).forEach(([_, value]) => {
-            counter += value.characters
+            counter += value.characters;
         });
         return counter;
     }
 
-    function main() {
-        // done via urls for syosetu.org, formatted -> https://syosetu.org/novel/{id}/
-        const path = window.location.pathname; // gets /novel/{id}
-        // if we're not currently in a novel (maybe in home page or settings, etc, we do nothing)
-        if (path.split("/")[1] !== "novel") {
-            return;
-        }
-
-        const novelId = path.split("/")[2]; // gets {id}, hopefully
-        if (localStorage.getItem(novelId) === null) {
-            console.log("New");
-            handleNewNovel(novelId);
-        }
-
-        const currentNovel = handleOldNovel(novelId);
-        renderCounter(currentNovel);
+    /**
+     * @returns {string}
+     */
+    function getHostname() {
+        return window.location.hostname;
     }
 
-    function renderCounter(currentNovel) {
-        // render the counter?
-        // for syosetu.org, put the characters after the title if it's a chapter
-        // if it's the chapter list page, list the total characters and tracked characters on each chapter item
+    class SiteStrategy {
+        isInNovelPage() {
+            throw new Error("Method not implemented.");
+        }
+        getNovelId() {
+            throw new Error("Method not implemented.");
+        }
+        handleOldNovel(id) {
+            throw new Error("Method not implemented.");
+        }
 
+        /**
+         * @param {string} id
+         * @param {Novel} novelData 
+         */
+        renderCounter(id, novelData) {
+            // Create a floating button
+            const button = document.createElement('button');
+            button.id = 'tracker-button';
+            button.textContent = `Open Tracker`;
+            button.style.position = 'fixed';
+            button.style.bottom = '20px';
+            button.style.right = '20px';
+            button.style.backgroundColor = '#333';
+            button.style.color = '#fff';
+            button.style.border = 'none';
+            button.style.padding = '10px 20px';
+            button.style.borderRadius = '5px';
+            button.style.cursor = 'pointer';
+            button.style.zIndex = '1000';
+            button.style.boxShadow = '0px 0px 5px rgba(0,0,0,0.5)';
+
+            document.body.appendChild(button);
+
+            const overlayContainer = document.createElement('div');
+            overlayContainer.style.position = "fixed";
+            overlayContainer.style.left = "0px";
+            overlayContainer.style.top = "0px";
+            overlayContainer.style.width = "100%";
+            overlayContainer.style.height = "100%";
+            overlayContainer.style.justifyContent = "center";
+            overlayContainer.style.display = "none";
+            overlayContainer.style.alignItems = "center";
+            overlayContainer.style.zIndex = "1001";
+            overlayContainer.style.fontSize = "16px";
+            overlayContainer.style.background = "rgba(0, 0, 0, 0.5)";
+
+            const popup = document.createElement('div');
+            popup.id = 'tracker-popup';
+            popup.style.height = '90%';
+            popup.style.width = 'calc(200px + 40%)';
+            popup.style.backgroundColor = '#222';
+            popup.style.color = '#fff';
+            popup.style.padding = '20px';
+            popup.style.borderRadius = '10px';
+            popup.style.boxShadow = '0px 4px 10px rgba(0,0,0,0.5)';
+            popup.style.display = "flex";
+            popup.style.flexDirection = "column";
+
+            // Add content to the popup
+            const title = document.createElement('h2');
+            title.textContent = 'Tracked Chapters';
+            title.style.borderBottom = '1px solid #444';
+            title.style.paddingBottom = '10px';
+            overlayContainer.appendChild(popup);
+            popup.appendChild(title);
+
+            // List of tracked chapters
+            const chapterList = document.createElement('table');
+            chapterList.style.paddingTop = "4px";
+            chapterList.style.listStyle = 'none';
+            chapterList.style.flexGrow = "1";
+            chapterList.style.overflowY = "auto";
+            chapterList.style.padding = '0';
+
+            const listHeader = document.createElement('thead');
+            listHeader.innerHTML = `<tr>
+                <th>#</td> <td>タイトル</td> <td>文字数</td> <td style="width:64px;">操作</td>
+            </tr>`
+            chapterList.append(listHeader);
+
+            const listBody = document.createElement('tbody');
+            chapterList.append(listBody);
+
+            // Populate the list with tracked chapters
+            Object.entries(novelData.readChapters).sort((a, b) => parseInt(a) - parseInt(b)).forEach(([key, chapter]) => {
+                const listItem = document.createElement('tr');
+                listItem.style.marginBottom = '10px';
+                listItem.innerHTML = `
+            <td>${key}</td> <td>${chapter.title}</td> <td>${chapter.characters}</td>
+            <td>
+                <button data-chapter="${key}" style="background-color: #ff6347; color: #fff; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">削除</button>
+            </td>
+        `;
+
+                // Add event listener for the remove button
+                listItem.querySelector('button').addEventListener('click', () => {
+                    const { [key]: _, ...updatedChapters } = novelData.readChapters;
+                    novelData.readChapters = updatedChapters;
+                    localStorage.setItem(id, JSON.stringify(novelData)); // Update the novel data in localStorage
+                    window.location.reload(); // Reload to update UI
+                });
+
+                chapterList.appendChild(listItem);
+            });
+
+            popup.appendChild(chapterList);
+
+            // Add close button
+            const closeButton = document.createElement('button');
+            closeButton.textContent = 'Close';
+            closeButton.style.backgroundColor = '#444';
+            closeButton.style.color = '#fff';
+            closeButton.style.border = 'none';
+            closeButton.style.padding = '10px 20px';
+            closeButton.style.borderRadius = '5px';
+            closeButton.style.cursor = 'pointer';
+            closeButton.style.marginTop = '20px';
+            closeButton.style.width = "fit-content";
+
+            closeButton.addEventListener('click', () => {
+                overlayContainer.style.display = 'none';
+            });
+
+            popup.appendChild(closeButton);
+
+            // Add popup to the body
+            document.body.appendChild(overlayContainer);
+
+            // Toggle popup visibility on button click
+            button.addEventListener('click', () => {
+                overlayContainer.style.display = overlayContainer.style.display === 'none' ? 'flex' : 'none';
+            });
+        }
+
+    }
+
+    class SyosetuOrg extends SiteStrategy {
         // https://syosetu.org/novel/{id}/{chapter}.html
-        const paths = window.location.pathname.split("/")
+        // split by "/"
+        // 1 -> gets "novel"
+        // 2 -> gets {id}
+        // 3 -> gets {chapter}
+        isInNovelPage() {
+            return window.location.pathname.split("/")[1] === "novel";
+        }
 
-        const isOnChapterList = paths[1] === "novel" && paths[2]
-        const currentChapter = paths[3]
+        getNovelId() {
+            return window.location.pathname.split("/")[2];
+        }
 
-        if (isOnChapterList) {
-            // get the table, add total
-            const table = document.querySelector('table')
+        handleOldNovel(id) {
+            // get the current chapter from the URL (if any)
+            let chapterId = window.location.pathname.split("/")[3];
+            const currentNovelData = JSON.parse(localStorage.getItem(id));
 
-            const row = document.createElement("tr")
-            const cell = document.createElement("td")
-            cell.textContent = `読んだ文字数　${countTotalCharacters(currentNovel)}`
-            row.appendChild(cell)
-
-            // table -> tbody -> insert before the first tr
-            table.children[0].insertBefore(row, table.children[0].children[0])
-
-            // list the characters on each tracked chapter item
-            for (const [key, row] of Array.from(table.children[0].children).entries()) {
-                if (currentNovel.readChapters[key]) {
-                    const counterText = document.createElement("span")
-                    counterText.textContent += `（${currentNovel.readChapters[key].characters}）`
-                    row.children[0].appendChild(counterText)
-
-                    // make a remove button
-                    const btn = document.createElement("button")
-                    btn.textContent = "削除";
-                    btn.onclick = () => {
-                        const { [key]: _, ...updatedChapters } = currentNovel.readChapters;
-                        const id = paths[2]
-                        currentNovel.readChapters = updatedChapters;
-                        console.log(updatedChapters)
-                        console.log(currentNovel)
-                        localStorage.setItem(id, JSON.stringify(currentNovel))
-                        window.location.reload()
-                    }
-
-                    row.children[0].appendChild(btn);
-                }
+            // if we are not in a chapter page, just return the existing novel data
+            if (!chapterId) {
+                return currentNovelData;
             }
 
+            // syosetu.org has .html attached to the number, we remove it
+            chapterId = chapterId.split(".")[0];
+
+            // Get the chapter content and calculate the character count
+            const chapterContent = document.querySelector("#honbun");
+            const chapterText = [...chapterContent.childNodes].map((node) => node.textContent).join("");
+
+            // Create a new chapter entry
+            // syosetu.org has 2 utterly different html pages for desktop and mobile
+            const titles = document.querySelectorAll('span[style="font-size:120%"]')
+            let newChapter = {};
+
+            // if desktop
+            if (titles.length === 2) {
+                newChapter.title = titles[1].textContent ?? "Unknown"
+                newChapter.characters = countJapaneseCharacters(chapterText)
+            }
+            // if mobile
+            else {
+                newChapter.title = document.querySelector("h2").textContent ?? "Unknown"
+                newChapter.characters = countJapaneseCharacters(chapterText)
+            }
+
+            // Update the novel data with the new chapter and store it in localStorage
+            currentNovelData.readChapters = { ...currentNovelData.readChapters, [chapterId]: newChapter };
+            localStorage.setItem(id, JSON.stringify(currentNovelData));
+
+            return currentNovelData;
+        }
+    }
+
+    class SyosetuCom extends SiteStrategy {
+
+    }
+
+    class KakuyomuJp extends SiteStrategy {
+
+    }
+
+    /**
+     * @param {string} hostname 
+     * @returns {SiteStrategy}
+     */
+    function getHandlerByHost(hostname) {
+        if (hostname === "syosetu.org") {
+            return new SyosetuOrg();
+        }
+        else if (hostname === "syosetu.com") {
+            return new SyosetuCom();
+        }
+        else if (hostname === "kakuyomu.jp") {
+            return new KakuyomuJp();
+        }
+        throw new Error("Site not supported!");
+    }
+
+    function main() {
+        const hostname = getHostname();
+        const handler = getHandlerByHost(hostname);
+
+        // if we're not currently in a novel-related page where we can get the id, we do nothing
+        // i.e in home page or settings, etc
+        if (!handler.isInNovelPage()) {
             return;
         }
 
-        // if we're in a chapter, render the counter
-        if (currentChapter) {
-            // get the chapter by finding via id
-            const id = currentChapter.split(".")[0]
-            const chapter = currentNovel.readChapters[id]
-            document.querySelectorAll('span[style="font-size:120%"]')[1].innerHTML = `${chapter.title}（${chapter.characters}）`
-            return;
+        const novelId = handler.getNovelId();
+        if (localStorage.getItem(novelId) === null) {
+            initializeStorage(novelId);
         }
+
+        const currentNovel = handler.handleOldNovel(novelId);
+        handler.renderCounter(novelId, currentNovel);
     }
 
     main();
