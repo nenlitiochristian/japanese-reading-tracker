@@ -1,6 +1,6 @@
 # Japanese Reading Tracker
 
-A userscript that tracks the number of characters you've read in Japanese web novels on popular websites like [Syosetu](https://syosetu.org) and [Kakuyomu](https://kakuyomu.jp). This script automatically counts and logs the characters read per chapter and displays a running total of characters read, helping you track your reading progress.
+A userscript that tracks the number of characters you've read in Japanese web novels on popular websites like [Syosetu](https://syosetu.com) and [Kakuyomu](https://kakuyomu.jp). This script automatically counts and logs the characters read per chapter and displays a running total of characters read, helping you track your reading progress.
 
 ## Supported Sites
 - [Hameln](https://syosetu.org)

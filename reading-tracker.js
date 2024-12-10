@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Japanese Reading Tracker
 // @description  Keeps track of characters read in popular japanese websites like syosetu.com, etc.
-// @version      1.3
+// @version      1.3.1
 // @author       nenlitiochristian
 // @match        https://syosetu.org/*
 // @match        https://kakuyomu.jp/*
@@ -57,6 +57,17 @@
             counter += value.characters;
         });
         return counter;
+    }
+
+    /**
+     * @param {Novel} novel
+     * @returns {string}
+     */
+    function exportCSV(novel) {
+        let string = "";
+        Object.entries(novel.readChapters).forEach(([key, value]) => {
+            string += `${key},${value.title},${value.characters}\n`
+        });
     }
 
     /**
@@ -118,9 +129,11 @@
             const chapterList = document.createElement('table');
             chapterList.classList.add('table-list');
 
+
+
             const listHeader = document.createElement('thead');
             listHeader.innerHTML = `<tr>
-                <th>#</th> <th style="width:auto;">タイトル</th> <th>文字数</th> <th style="width:64px;"></th>
+                <th style="width:32px;">#</th> <th style="width:75%;">タイトル</th> <th>文字数</th> <th style="width:64px;"></th>
             </tr>`;
 
             chapterList.append(listHeader);
@@ -318,13 +331,13 @@
      * @returns {SiteStrategy}
      */
     function getHandlerByHost(hostname) {
-        if (hostname === "syosetu.org") {
+        if (hostname.endsWith("syosetu.org")) {
             return new SyosetuOrg();
         }
-        else if (hostname === "ncode.syosetu.com") {
+        else if (hostname.endsWith("syosetu.com")) {
             return new SyosetuCom();
         }
-        else if (hostname === "kakuyomu.jp") {
+        else if (hostname.endsWith("kakuyomu.jp")) {
             return new KakuyomuJp();
         }
         throw new Error("Site not supported!");
