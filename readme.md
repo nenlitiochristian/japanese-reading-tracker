@@ -13,7 +13,7 @@ A userscript that tracks the number of characters you've read in Japanese web no
    - [Greasemonkey](https://www.greasespot.net/)
    - [Violentmonkey](https://violentmonkey.github.io/)
 
-2. After installing a userscript manager, copy or download the js file contained in the repository.
+2. After installing a userscript manager, press the install button on https://greasyfork.org/en/scripts/512137-japanese-reading-tracker/code. Alternatively, you can also download the userscript manually from this repository.
 
 ## Usage
 Once the userscript is installed and active:
